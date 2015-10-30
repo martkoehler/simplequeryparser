@@ -1,0 +1,93 @@
+options
+{
+    LOOKAHEAD = 1;
+}
+
+PARSER_BEGIN(SimpleQueryParser)
+package de.koehler.parser;
+
+public class SimpleQueryParser
+{
+}
+PARSER_END(SimpleQueryParser)
+
+SKIP :
+{
+  " "
+| "\r"
+| "\t"
+| "\n"
+}
+
+TOKEN :
+{
+  < #LBRACE: "{" >
+| < #RBRACE: "}" >
+| < #LBRACKET: "[" >
+| < #RBRACKET: "]" >
+| < #SEMICOLON: ";" >
+| < #COLON: ":" >
+| < #COMMA: "," >
+| < #DOT: "."  >
+| < #EQ: "=" >
+| < #DOLLAR: "$" >
+| < #STAR: "*" >
+| < #SLASH: "/" >
+}
+
+TOKEN :
+{
+   <#DIGIT: ["0"-"9"]>
+|  <#LOWER: ["a"-"z"]>
+|  <#UPPER: ["A"-"Z", "_"]>
+|  <#SPECIAL: "!" | "\"" | <STAR> | <DOLLAR> | "%" | <DOT> | "#" | "+" | <COMMA> | "-" | "?" | <SLASH> | <COLON> | <SEMICOLON> | "<" | <EQ> | ">" | "@" | <LBRACKET> | <RBRACKET> | <LBRACE> | <RBRACE> | "`">
+|  <#APOSTROPHE: "'">
+|  <#CHARACTER: " " | <DIGIT> | <LOWER> | <UPPER> | <SPECIAL> | <APOSTROPHE>>
+|  <TEXT: (<CHARACTER>)+>
+}
+
+/* OPERATORS */
+TOKEN:
+{
+  <AND: "&" >
+| <OR: "|" >
+| <NOT: "^" >
+| < LPAREN: "(" >
+| < RPAREN: ")" >
+}
+
+void expression():
+{
+}
+{
+  term()
+  (
+    <OR> expression()
+  )?
+}
+
+void term():
+{
+}
+{
+  unary()
+  (
+    <AND> term()
+  )?
+}
+
+void unary():
+{
+}
+{
+  text()
+| <NOT> text()
+}
+
+void text():
+{
+}
+{
+  <TEXT>
+| <LPAREN> expression() <RPAREN>
+}
