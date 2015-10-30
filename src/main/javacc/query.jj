@@ -1,6 +1,7 @@
 options
 {
     LOOKAHEAD = 1;
+    STATIC = false;
 }
 
 PARSER_BEGIN(SimpleQueryParser)
@@ -21,28 +22,11 @@ SKIP :
 
 TOKEN :
 {
-  < #LBRACE: "{" >
-| < #RBRACE: "}" >
-| < #LBRACKET: "[" >
-| < #RBRACKET: "]" >
-| < #SEMICOLON: ";" >
-| < #COLON: ":" >
-| < #COMMA: "," >
-| < #DOT: "."  >
-| < #EQ: "=" >
-| < #DOLLAR: "$" >
-| < #STAR: "*" >
-| < #SLASH: "/" >
-}
-
-TOKEN :
-{
    <#DIGIT: ["0"-"9"]>
 |  <#LOWER: ["a"-"z"]>
 |  <#UPPER: ["A"-"Z", "_"]>
-|  <#SPECIAL: "!" | "\"" | <STAR> | <DOLLAR> | "%" | <DOT> | "#" | "+" | <COMMA> | "-" | "?" | <SLASH> | <COLON> | <SEMICOLON> | "<" | <EQ> | ">" | "@" | <LBRACKET> | <RBRACKET> | <LBRACE> | <RBRACE> | "`">
-|  <#APOSTROPHE: "'">
-|  <#CHARACTER: " " | <DIGIT> | <LOWER> | <UPPER> | <SPECIAL> | <APOSTROPHE>>
+|  <APOSTROPHE: "'">
+|  <#CHARACTER: <DIGIT> | <LOWER> | <UPPER>>
 |  <TEXT: (<CHARACTER>)+>
 }
 
@@ -51,9 +35,9 @@ TOKEN:
 {
   <AND: "&" >
 | <OR: "|" >
-| <NOT: "^" >
-| < LPAREN: "(" >
-| < RPAREN: ")" >
+| <NOT: "!" >
+| <LPAREN: "(" >
+| <RPAREN: ")" >
 }
 
 void expression():
@@ -89,5 +73,6 @@ void text():
 }
 {
   <TEXT>
+| <APOSTROPHE> expression() <APOSTROPHE>
 | <LPAREN> expression() <RPAREN>
 }
