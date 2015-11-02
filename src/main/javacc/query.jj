@@ -7,8 +7,25 @@ options
 PARSER_BEGIN(SimpleQueryParser)
 package de.koehler.parser;
 
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.Predicate;
+import java.io.Reader;
+import java.io.StringReader;
+
 public class SimpleQueryParser
 {
+    private CriteriaBuilder builder;
+
+    public SimpleQueryParser(final CriteriaBuilder builder, final String query)
+    {
+        this((Reader)(new StringReader(query)));
+        this.builder = builder;
+    }
+
+        public Predicate parse() throws ParseException {
+            System.out.println("-- " +expression(builder));
+            return null;
+        }
 }
 PARSER_END(SimpleQueryParser)
 
@@ -40,39 +57,49 @@ TOKEN:
 | <RPAREN: ")" >
 }
 
-void expression():
+String expression(CriteriaBuilder externalBuilder):
 {
+ CriteriaBuilder builder = externalBuilder;
+ String expressionText;
 }
 {
-  term()
+  expressionText = term(builder)
   (
-    <OR> expression()
-  )?
+    <OR> expression(builder)
+  )? {return expressionText;}
 }
 
-void term():
+String term(CriteriaBuilder externalBuilder):
 {
+ CriteriaBuilder builder = externalBuilder;
+ Token term;
+ String termText;
 }
 {
-  unary()
+  termText = unary(builder)
   (
-    <AND> term()
-  )?
+    term = <AND> term(builder)
+  )? {return termText;}
 }
 
-void unary():
+String unary(CriteriaBuilder externalBuilder):
 {
+ CriteriaBuilder builder = externalBuilder;
+ Token unary;
+ String unaryText = "";
 }
 {
-  text()
-| <NOT> text()
+  unaryText = text(builder) {return unaryText;}
+| unary = <NOT> text(builder) {return unaryText;}
 }
 
-void text():
+String text(CriteriaBuilder externalBuilder):
 {
+ CriteriaBuilder builder = externalBuilder;
+ Token result;
 }
 {
-  <TEXT>
-| <APOSTROPHE> expression() <APOSTROPHE>
-| <LPAREN> expression() <RPAREN>
+  result = <TEXT> { System.out.println("found simple text"); return result.image;}
+| result = <LPAREN> { System.out.println("left brackets"); } expression(builder) <RPAREN> { System.out.println("right brackets"); return result.image;}
+| result = <APOSTROPHE> { System.out.println("found left apostrophe"); } expression(builder) <APOSTROPHE> { System.out.println("found right apostrophe"); return result.image;}
 }
