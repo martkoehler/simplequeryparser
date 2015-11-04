@@ -2,6 +2,8 @@ options
 {
     LOOKAHEAD = 1;
     STATIC = false;
+    IGNORE_CASE = true;
+    DEBUG_PARSER = true;
 }
 
 PARSER_BEGIN(SimpleQueryParser)
@@ -23,7 +25,7 @@ public class SimpleQueryParser
     }
 
         public Predicate parse() throws ParseException {
-            System.out.println("-- " +expression(builder));
+            System.out.println(expression());
             return null;
         }
 }
@@ -31,75 +33,64 @@ PARSER_END(SimpleQueryParser)
 
 SKIP :
 {
-  " "
+" "
 | "\r"
 | "\t"
+| "\r\n"
 | "\n"
 }
 
 TOKEN :
 {
    <#DIGIT: ["0"-"9"]>
-|  <#LOWER: ["a"-"z"]>
-|  <#UPPER: ["A"-"Z", "_"]>
-|  <APOSTROPHE: "'">
-|  <#CHARACTER: <DIGIT> | <LOWER> | <UPPER>>
-|  <TEXT: (<CHARACTER>)+>
+|  <#LOWER: ["a"-"z", "ä","ö","ü","ß"]>
+|  <#UPPER: ["A"-"Z", "Ä","Ö","Ü"]>
+|  <#SPECIAL: [".", "-"]>
+|  <LPAREN: "(" >
+|  <RPAREN: ")" >
+|  <PARENTHESIS: <LPAREN> | <RPAREN>>
+|  <TEXT: (<APOSTROPHE>) (<CHARACTER> | <PARENTHESIS> | " ")* (<CHARACTER> | <PARENTHESIS>) (<CHARACTER> | " ")* (<APOSTROPHE>)
+         | (<CHARACTER>) (<CHARACTER>  | " ")* (<CHARACTER>)
+         | (<CHARACTER>)+ >
+|  <CHARACTER: <DIGIT> | <LOWER> | <UPPER> | <SPECIAL> | <WILDCARD>>
+|  <APOSTROPHE: "\'">
 }
 
 /* OPERATORS */
 TOKEN:
 {
-  <AND: "&" >
+  <AND: "&">
 | <OR: "|" >
 | <NOT: "!" >
-| <LPAREN: "(" >
-| <RPAREN: ")" >
+| <WILDCARD: ["%","_"]>
+| <EMPTY: "#">
 }
 
-String expression(CriteriaBuilder externalBuilder):
+String expression():
 {
- CriteriaBuilder builder = externalBuilder;
- String expressionText;
+ Token operator = null;
+ String first = "";
+ String second = "";
 }
 {
-  expressionText = term(builder)
+  first = text()
   (
-    <OR> expression(builder)
-  )? {return expressionText;}
+     operator = <OR> second = expression()
+   | operator = <AND> second = expression()
+
+  )? {return first + (operator == null ? "" : operator.image) + second;}
 }
 
-String term(CriteriaBuilder externalBuilder):
+String text():
 {
- CriteriaBuilder builder = externalBuilder;
- Token term;
- String termText;
-}
-{
-  termText = unary(builder)
-  (
-    term = <AND> term(builder)
-  )? {return termText;}
-}
+ Token token = null;
 
-String unary(CriteriaBuilder externalBuilder):
-{
- CriteriaBuilder builder = externalBuilder;
- Token unary;
- String unaryText = "";
+ String text = "";
 }
 {
-  unaryText = text(builder) {return unaryText;}
-| unary = <NOT> text(builder) {return unaryText;}
-}
+  token = <EMPTY> {return token.image;}
+| token = <TEXT> { return token.image;}
+| token = <NOT> text = text() {return token.image + text;}
+| <LPAREN> text = expression() <RPAREN> { return "("+text+")";}
 
-String text(CriteriaBuilder externalBuilder):
-{
- CriteriaBuilder builder = externalBuilder;
- Token result;
-}
-{
-  result = <TEXT> { System.out.println("found simple text"); return result.image;}
-| result = <LPAREN> { System.out.println("left brackets"); } expression(builder) <RPAREN> { System.out.println("right brackets"); return result.image;}
-| result = <APOSTROPHE> { System.out.println("found left apostrophe"); } expression(builder) <APOSTROPHE> { System.out.println("found right apostrophe"); return result.image;}
 }
